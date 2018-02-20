@@ -311,7 +311,7 @@
                     + JSON.stringify(toastr.options, null, 2)
             );
 
-            var $toast = toastr[shortCutFunction](msg, title); // Wire up an event handler to a button in the toast, if it exists
+            var $toast = $(toastr[shortCutFunction](msg, title, {closeButton: true,})); // Wire up an event handler to a button in the toast, if it exists
             $toastlast = $toast;
 
             if(typeof $toast === 'undefined'){
@@ -320,7 +320,8 @@
 
             if ($toast.find('#okBtn').length) {
                 $toast.delegate('#okBtn', 'click', function () {
-                    alert('you clicked me. i was toast #' + toastIndex + '. goodbye!');
+                    alert('you 123123 clicked me. i was toast #' + toastIndex + '. goodbye!');
+                    console.log($toast);
                     $toast.remove();
                 });
             }
@@ -331,7 +332,7 @@
             }
             if ($toast.find('.clear').length) {
                 $toast.delegate('.clear', 'click', function () {
-                    toastr.clear($toast, { force: true });
+                    toastr.clear($toast[0], { force: true });
                 });
             }
         });

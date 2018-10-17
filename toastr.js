@@ -20,31 +20,38 @@
  *
  */
 /* global define */
-(function () {
-    var $container;
-    var listener;
-    var toastId = 0;
-    var toastType = {
-        error: 'error',
-        info: 'info',
-        success: 'success',
-        warning: 'warning'
-    };
-    var toastr = {
-        // clear: clear,
-        remove: remove,
-        error: error,
-        getContainer: getContainer,
-        info: info,
-        options: {},
-        subscribe: subscribe,
-        success: success,
-        version: '1.0',
-        warning: warning
-    };
-    var previousToast;
+function Toastr () {
+    var $container,
+        listener,
+        toastId = 0,
+        animate = returnAnimateFunction(),
+        animations = {
+            fadeOut: fadeOut
+        },
+        toastType = {
+            error: 'error',
+            info: 'info',
+            success: 'success',
+            warning: 'warning'
+        },
+        toastr = {
+            // clear: clear,
+            remove: remove,
+            error: error,
+            getContainer: getContainer,
+            info: info,
+            options: {},
+            subscribe: subscribe,
+            success: success,
+            version: '1.0',
+            warning: warning
+        },
+        previousToast;
+
     return toastr;
-    ////////////////
+
+    //------------------------------------------------------------------
+
     function error(message, title, optionsOverride) {
         return notify({
             type: toastType.error,
@@ -103,17 +110,11 @@
         });
     }
 
-    // function clear(toastElement, clearOptions) {
-    //     var options = getOptions();
-    //     !$container && getContainer(options);
-    //     if (!clearToast(toastElement, options, clearOptions)) {
-    //         clearContainer(options);
-    //     }
-    // }
-
     function remove(toastElement) {
         var options = getOptions();
-        !$container && getContainer(options);
+        if (!$container) {
+            getContainer(options);
+        }
         if (toastElement && document.activeElement === toastElement) {
             removeToast(toastElement);
             return;
@@ -122,23 +123,6 @@
             $container.parentElement.removeChild($container);
         }
     }
-
-    // function clearContainer(options) {
-    //     console.log('---', $container);
-    //     var toastsToClear = $container.children;
-    //     for (var i = toastsToClear.length; i--;) {
-    //         hideToast()
-    //     }
-    // }
-
-    // function clearToast(toastElement, options, clearOptions) {
-    //     var force = clearOptions && !!clearOptions.force;
-    //     if (toastElement && (force || document.activeElement === toastElement)) {
-    //         fadeOut(toastElement, options.hideDuration, function () { removeToast(toastElement); });
-    //         return true;
-    //     }
-    //     return false;
-    // }
 
     function createContainer(options) {
         var parent = document.querySelector(options.target),
@@ -294,8 +278,8 @@
 
         function handleEvents() {
             if (options.closeOnHover) {
-                $toastElement.addEventListener('mouseenter', stickAround)
-                $toastElement.addEventListener('mouseleave', delayedHideToast)
+                $toastElement.addEventListener('mouseenter', stickAround);
+                $toastElement.addEventListener('mouseleave', delayedHideToast);
             }
 
             if (!options.onclick && options.tapToDismiss) {
@@ -329,8 +313,9 @@
             // $toastElement[options.showMethod](
             //     {duration: options.showDuration, easing: options.showEasing, complete: options.onShown}
             // );
-            $toastElement.style.display = '';
-            options.onShown && options.onShown();
+            console.log('options.showEasing', options.showEasing);
+            fadeIn($toastElement, options.showDuration, null /*options.showEasing*/, options.onShown);
+
             if (options.timeOut > 0) {
                 intervalId = setTimeout(hideToast, options.timeOut);
                 progressBar.maxHideTime = parseFloat(options.timeOut);
@@ -357,7 +342,9 @@
         }
 
         function setTitle() {
-            if (!map.title) return;
+            if (!map.title) {
+                return;
+            }
             if (options.escapeHtml) {
                 $titleElement.textContent = escapeHtml(map.title);
             }
@@ -370,7 +357,9 @@
         }
 
         function setMessage() {
-            if (!map.message) return;
+            if (!map.message) {
+                return;
+            }
             if (options.escapeHtml) {
                 $messageElement.innerHTML = escapeHtml(map.message);
             }
@@ -415,15 +404,14 @@
         }
 
         function hideToast(override) {
-            var method = override && options.closeMethod !== false ? options.closeMethod : options.hideMethod;
-            var duration = override && options.closeDuration !== false ?
-                options.closeDuration : options.hideDuration;
-            var easing = override && options.closeEasing !== false ? options.closeEasing : options.hideEasing;
+            var method = override && options.closeMethod !== false ? options.closeMethod : options.hideMethod,
+                duration = override && options.closeDuration !== false ? options.closeDuration : options.hideDuration,
+                easing = override && options.closeEasing !== false ? options.closeEasing : options.hideEasing;
             if (document.activeElement === $toastElement && !override) {
                 return;
             }
             clearTimeout(progressBar.intervalId);
-            fadeOut($toastElement, duration, function () {
+            fadeOut($toastElement, duration, null /*easing*/, function () {
                 removeToast($toastElement);
                 clearTimeout(intervalId);
                 if (options.onHidden && response.state !== 'hidden') {
@@ -470,31 +458,84 @@
         //     $toastElement.offsetHeight > 0 && $toastElement.offsetWidth > 0) {
         //     return;
         // }
-        toastElement.parentElement.removeChild(toastElement);
+        if (toastElement.parentElement) {
+            toastElement.parentElement.removeChild(toastElement);
+        }
         toastElement = null;
         if ($container.children.length === 0) {
             $container.parentElement.removeChild($container);
             previousToast = undefined;
         }
     }
-    function fadeOut(elem, duration, callback) {
+
+    function fadeIn(elem, duration, timing, callback) {
         var initOpacity = parseFloat(window.getComputedStyle(elem).opacity);
-        fadeOutAniamtion(elem, duration, 0);
-        function innerCallback() {
-            elem.style.display = 'none';
-            elem.style.opacity = '';
-            callback && callback()
-        }
-        function fadeOutAniamtion(elem, stopTime, currentTime) {
-            currentTime += 20;
-            if (currentTime >= stopTime) {
-                elem.style.opacity = '0';
-                innerCallback();
-                return;
+        elem.style.opacity = '0';
+        elem.style.display = '';
+        animate({
+            duration: duration,
+            timing: timing,
+            draw: function (p) {
+                elem.style.opacity = (initOpacity * p).toString().slice(0,5);
+            },
+            done: function () {
+                elem.style.opacity = '';
+                if (callback) {
+                    callback();
+                }
             }
-            elem.style.opacity = (initOpacity - initOpacity * (currentTime / stopTime)).toString().slice(0,5)
-            setTimeout(fadeOutAniamtion, 20, elem, stopTime, currentTime);
-        }
+        });
     }
 
-})();
+    function fadeOut(elem, duration, timing, callback) {
+        var initOpacity = parseFloat(window.getComputedStyle(elem).opacity);
+        animate({
+            duration: duration,
+            timing: timing,
+            draw: function (p) {
+                elem.style.opacity = (initOpacity - initOpacity * p).toString().slice(0,5);
+            },
+            done: function () {
+                elem.style.display = 'none';
+                elem.style.opacity = '';
+                if (callback) {
+                    callback();
+                }
+            }
+        });
+    }
+
+
+    function returnAnimateFunction() {
+        var requestAnimation = window.requestAnimationFrame || window.mozRequestAnimationFrame ||
+            window.webkitRequestAnimationFrame || window.msRequestAnimationFrame || function (f) {
+                setTimeout(f, 20);
+            };
+        return function (options) {
+            // options = {
+            //    duration: Number,
+            //    timing: Function(time:Number),
+            //    draw: Function(progress:Number)
+            //    done: Function()
+            // }
+            var start = Date.now();
+            options.timing = options.timing || function (t) { return t; };
+            requestAnimation(function animate() {
+                var timePassed = Date.now() - start,
+                    timeFraction = timePassed / options.duration,
+                    progress;
+                if (timeFraction > 1) {
+                    timeFraction = 1;
+                }
+                progress = options.timing(timeFraction);
+                options.draw(progress);
+                if (timeFraction < 1) {
+                    requestAnimation(animate);
+                }
+                else if (options.done) {
+                    options.done();
+                }
+            });
+        };
+    }
+}
